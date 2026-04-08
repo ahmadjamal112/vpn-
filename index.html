@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TORA VPN — Personal Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #060810;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Syne', sans-serif;
+    color: #e8eaf0;
+    padding: 20px;
+  }
+  .vpn-app {
+    background: #0a0d14;
+    border-radius: 20px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 420px;
+    border: 1px solid #1e2535;
+    box-shadow: 0 0 60px rgba(74,240,196,0.06);
+  }
+  .vpn-top {
+    background: #0f1420;
+    padding: 20px 24px 0;
+    border-bottom: 1px solid #1e2535;
+  }
+  .vpn-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #4af0c4;
+    text-transform: uppercase;
+  }
+  .vpn-body { padding: 20px 24px; }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    background: #0a0d14;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+    border: 1px solid #1e2535;
+  }
+  .tab {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-radius: 7px;
+    cursor: pointer;
+    color: #556080;
+    transition: all 0.2s;
+    font-family: 'Syne', sans-serif;
+    border: none;
+    background: transparent;
+  }
+  .tab.active { background: #4af0c4; color: #0a0d14; }
+
+  .connection-ring {
+    width: 180px;
+    height: 180px;
+    margin: 8px auto 24px;
+    position: relative;
+    cursor: pointer;
+  }
+  .ring-svg { width: 180px; height: 180px; }
+  .ring-track { fill: none; stroke: #1e2535; stroke-width: 8; }
+  .ring-progress {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.2s ease, stroke 0.5s ease;
+    transform-origin: center;
+    transform: rotate(-90deg);
+  }
+  .ring-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .ring-icon { font-size: 32px; margin-bottom: 4px; }
+  .ring-label {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .connect-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: #4af0c4;
+    color: #0a0d14;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+  }
+  .connect-btn:hover { background: #2adba8; transform: scale(0.99); }
+  .connect-btn.connected { background: #e24b4a; color: #fff; }
+  .connect-btn.connected:hover { background: #c33; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #0f1420;
+    border: 1px solid #1e2535;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: #4af0c4;
+  }
+  .stat-lbl {
+    font-size: 10px;
+    color: #556080;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .speed-bar-wrap {
+    background: #1e2535;
+    border-radius: 4px;
+    height: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .speed-bar { height: 3px; border-radius: 4px; background: #4af0c4; transition: width 1s ease; }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #556080;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .ip-box {
+    background: #0f1420;
+    border: 1px solid #1e2535;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ip-key {
+    font-size: 10px;
+    color: #556080;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .ip-val { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #e8eaf0; }
+  .ip-val.masked { color: #4af0c4; }
+
+  .server-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .server-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #0f1420;
+    border: 1px solid #1e2535;
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .server-row:hover { border-color: #4af0c4; }
+  .server-row.active { border-color: #4af0c4; background: #0d1f1a; }
+  .server-flag { font-size: 20px; }
+  .server-info { flex: 1; }
+  .server-name { font-size: 14px; font-weight: 600; color: #c8d0e0; }
+  .server-sub { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #556080; margin-top: 2px; }
+  .server-ping { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .ping-good { color: #4af0c4; }
+  .ping-ok { color: #fac775; }
+  .ping-bad { color: #e24b4a; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #1e2535;
+  }
+  .toggle-name { font-size: 13px; color: #c8d0e0; }
+  .toggle-sub { font-size: 11px; color: #556080; margin-top: 3px; }
+  .toggle {
+    width: 38px;
+    height: 22px;
+    background: #1e2535;
+    border-radius: 11px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: #4af0c4; }
+  .toggle::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 19px; }
+
+  .proto-select {
+    background: #1e2535;
+    border: 1px solid #2a3550;
+    border-radius: 8px;
+    padding: 7px 12px;
+    color: #e8eaf0;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .dns-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+
+  .log-box {
+    background: #060810;
+    border: 1px solid #1e2535;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #4af0c4;
+    height: 200px;
+    overflow-y: auto;
+  }
+  .log-line { margin-bottom: 5px; line-height: 1.5; }
+  .log-line .ts { color: #556080; }
+  .log-line .ok { color: #4af0c4; }
+  .log-line .warn { color: #fac775; }
+  .log-line .err { color: #e24b4a; }
+
+  .hidden { display: none !important; }
+
+  /* Config tab */
+  .config-box {
+    background: #060810;
+    border: 1px solid #1e2535;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #c8d0e0;
+    line-height: 1.8;
+    white-space: pre;
+    overflow-x: auto;
+    margin-bottom: 12px;
+  }
+  .config-key { color: #4af0c4; }
+  .copy-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid #4af0c4;
+    border-radius: 8px;
+    color: #4af0c4;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: #4af0c4; color: #0a0d14; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #0a0d14; }
+  ::-webkit-scrollbar-thumb { background: #1e2535; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="vpn-app">
+  <div class="vpn-top">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;">
+      <div>
+        <div class="vpn-title">TORA VPN</div>
+        <div style="font-size:11px;color:#556080;font-family:'JetBrains Mono',monospace;margin-top:4px;" id="vpn-status-line">● DISCONNECTED</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;color:#556080;letter-spacing:1px;text-transform:uppercase;">Session</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#c8d0e0;" id="session-timer">00:00:00</div>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('dashboard',this)">Dashboard</button>
+      <button class="tab" onclick="switchTab('servers',this)">Servers</button>
+      <button class="tab" onclick="switchTab('config',this)">Config</button>
+      <button class="tab" onclick="switchTab('settings',this)">Settings</button>
+      <button class="tab" onclick="switchTab('log',this)">Log</button>
+    </div>
+  </div>
+
+  <div class="vpn-body">
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard">
+      <div class="connection-ring" onclick="toggleConnect()">
+        <svg class="ring-svg" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+          <circle class="ring-track" cx="90" cy="90" r="76"/>
+          <circle class="ring-progress" id="ring-progress" cx="90" cy="90" r="76"
+            stroke="#4af0c4" stroke-dasharray="477.5" stroke-dashoffset="477.5"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-icon" id="ring-icon">🔓</div>
+          <div class="ring-label" id="ring-text" style="color:#556080;">TAP TO CONNECT</div>
+        </div>
+      </div>
+
+      <button class="connect-btn" id="conn-btn" onclick="toggleConnect()">CONNECT</button>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="stat-down">0.0 KB</div>
+          <div class="stat-lbl">Download</div>
+          <div class="speed-bar-wrap"><div class="speed-bar" id="bar-down" style="width:0%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-up">0.0 KB</div>
+          <div class="stat-lbl">Upload</div>
+          <div class="speed-bar-wrap"><div class="speed-bar" id="bar-up" style="width:0%;background:#fac775"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-ping">—</div>
+          <div class="stat-lbl">Ping</div>
+          <div class="speed-bar-wrap"><div class="speed-bar" id="bar-ping" style="width:0%;background:#e24b4a"></div></div>
+        </div>
+      </div>
+
+      <div class="ip-box">
+        <div>
+          <div class="ip-key">Real IP</div>
+          <div class="ip-val">103.47.xx.xx</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="ip-key">VPN IP</div>
+          <div class="ip-val masked" id="vpn-ip">—</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#0f1420;border:1px solid #1e2535;border-radius:10px;padding:13px 16px;">
+        <div>
+          <div class="ip-key">Active Server</div>
+          <div style="font-size:14px;font-weight:600;color:#c8d0e0;" id="active-server-name">None selected</div>
+        </div>
+        <div style="font-size:24px;" id="active-server-flag">🌐</div>
+      </div>
+    </div>
+
+    <!-- SERVERS -->
+    <div id="tab-servers" class="hidden">
+      <div class="section-label">Select Server</div>
+      <div class="server-list">
+        <div class="server-row active" onclick="selectServer(this,'🇩🇪','Germany — Frankfurt','10.8.0.1','23ms','ping-good')">
+          <div class="server-flag">🇩🇪</div>
+          <div class="server-info">
+            <div class="server-name">Germany — Frankfurt</div>
+            <div class="server-sub">wg.de.toravpn.net · WireGuard</div>
+          </div>
+          <div class="server-ping ping-good">23ms</div>
+        </div>
+        <div class="server-row" onclick="selectServer(this,'🇳🇱','Netherlands — Amsterdam','10.9.0.1','41ms','ping-good')">
+          <div class="server-flag">🇳🇱</div>
+          <div class="server-info">
+            <div class="server-name">Netherlands — Amsterdam</div>
+            <div class="server-sub">wg.nl.toravpn.net · WireGuard</div>
+          </div>
+          <div class="server-ping ping-good">41ms</div>
+        </div>
+        <div class="server-row" onclick="selectServer(this,'🇺🇸','United States — New York','10.10.0.1','130ms','ping-ok')">
+          <div class="server-flag">🇺🇸</div>
+          <div class="server-info">
+            <div class="server-name">United States — New York</div>
+            <div class="server-sub">wg.us.toravpn.net · WireGuard</div>
+          </div>
+          <div class="server-ping ping-ok">130ms</div>
+        </div>
+        <div class="server-row" onclick="selectServer(this,'🇸🇬','Singapore','10.11.0.1','88ms','ping-ok')">
+          <div class="server-flag">🇸🇬</div>
+          <div class="server-info">
+            <div class="server-name">Singapore</div>
+            <div class="server-sub">wg.sg.toravpn.net · WireGuard</div>
+          </div>
+          <div class="server-ping ping-ok">88ms</div>
+        </div>
+        <div class="server-row" onclick="selectServer(this,'🇬🇧','United Kingdom — London','10.12.0.1','58ms','ping-good')">
+          <div class="server-flag">🇬🇧</div>
+          <div class="server-info">
+            <div class="server-name">United Kingdom — London</div>
+            <div class="server-sub">wg.uk.toravpn.net · WireGuard</div>
+          </div>
+          <div class="server-ping ping-good">58ms</div>
+        </div>
+        <div class="server-row" onclick="selectServer(this,'🇦🇪','UAE — Dubai','10.13.0.1','62ms','ping-good')">
+          <div class="server-flag">🇦🇪</div>
+          <div class="server-info">
+            <div class="server-name">UAE — Dubai</div>
+            <div class="server-sub">wg.ae.toravpn.net · WireGuard</div>
+          </div>
+          <div class="server-ping ping-good">62ms</div>
+        </div>
+        <div class="server-row" onclick="selectServer(this,'🇯🇵','Japan — Tokyo','10.14.0.1','175ms','ping-ok')">
+          <div class="server-flag">🇯🇵</div>
+          <div class="server-info">
+            <div class="server-name">Japan — Tokyo</div>
+            <div class="server-sub">wg.jp.toravpn.net · WireGuard</div>
+          </div>
+          <div class="server-ping ping-ok">175ms</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div id="tab-config" class="hidden">
+      <div class="section-label">WireGuard Client Config</div>
+      <div class="config-box" id="config-text">[Interface]
+<span class="config-key">Address</span>     = 10.8.0.2/24
+<span class="config-key">PrivateKey</span>  = &lt;YOUR_CLIENT_PRIVATE_KEY&gt;
+<span class="config-key">DNS</span>         = 1.1.1.1, 8.8.8.8
+<span class="config-key">MTU</span>         = 1420
+
+[Peer]
+<span class="config-key">PublicKey</span>   = &lt;YOUR_SERVER_PUBLIC_KEY&gt;
+<span class="config-key">Endpoint</span>    = wg.de.toravpn.net:51820
+<span class="config-key">AllowedIPs</span>  = 0.0.0.0/0, ::/0
+<span class="config-key">PersistentKeepalive</span> = 25</div>
+      <button class="copy-btn" onclick="copyConfig()">Copy Config</button>
+      <div style="margin-top:16px;"></div>
+      <div class="section-label">Server Setup Commands</div>
+      <div class="config-box"># Install WireGuard on Ubuntu VPS
+apt update && apt install wireguard -y
+
+# Generate keypairs
+wg genkey | tee server.key | wg pubkey > server.pub
+wg genkey | tee client.key | wg pubkey > client.pub
+
+# Enable IP forwarding
+echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+sysctl -p
+
+# Open firewall port
+ufw allow 51820/udp && ufw enable
+
+# Start tunnel
+systemctl enable wg-quick@wg0
+systemctl start wg-quick@wg0</div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings" class="hidden">
+      <div class="section-label">Security</div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-name">Kill Switch</div>
+          <div class="toggle-sub">Block all traffic if VPN drops</div>
+        </div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-name">Auto-connect on Boot</div>
+          <div class="toggle-sub">Start VPN tunnel automatically</div>
+        </div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-name">DNS Leak Protection</div>
+          <div class="toggle-sub">Force all DNS through tunnel</div>
+        </div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-name">IPv6 Leak Block</div>
+          <div class="toggle-sub">Disable IPv6 outside tunnel</div>
+        </div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-row" style="border:none;">
+        <div>
+          <div class="toggle-name">Protocol</div>
+          <div class="toggle-sub">Tunnel protocol</div>
+        </div>
+        <select class="proto-select">
+          <option>WireGuard</option>
+          <option>OpenVPN UDP</option>
+          <option>OpenVPN TCP</option>
+        </select>
+      </div>
+
+      <div class="section-label" style="margin-top:20px;">DNS Servers</div>
+      <div class="dns-grid">
+        <div class="ip-box" style="flex-direction:column;align-items:flex-start;margin-bottom:0;">
+          <div class="ip-key">Primary</div>
+          <div class="ip-val" style="font-size:13px;">1.1.1.1</div>
+        </div>
+        <div class="ip-box" style="flex-direction:column;align-items:flex-start;margin-bottom:0;">
+          <div class="ip-key">Secondary</div>
+          <div class="ip-val" style="font-size:13px;">8.8.8.8</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div id="tab-log" class="hidden">
+      <div class="section-label">Connection Log</div>
+      <div class="log-box" id="log-box">
+        <div class="log-line"><span class="ts">[00:00:00] </span><span class="warn">TORA VPN initialized</span></div>
+        <div class="log-line"><span class="ts">[00:00:00] </span><span>WireGuard module loaded</span></div>
+        <div class="log-line"><span class="ts">[00:00:00] </span><span>Kill switch: ACTIVE</span></div>
+        <div class="log-line"><span class="ts">[00:00:00] </span><span>DNS leak protection: ACTIVE</span></div>
+        <div class="log-line"><span class="ts">[00:00:00] </span><span>IPv6 leak block: ACTIVE</span></div>
+        <div class="log-line"><span class="ts">[00:00:00] </span><span class="warn">Status: Waiting for connection...</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let connected = false;
+  let sessionSec = 0;
+  let sessionInterval = null;
+  let statsInterval = null;
+  let totalDown = 0, totalUp = 0;
+  let currentServer = { name: 'Germany — Frankfurt', flag: '🇩🇪', ip: '10.8.0.1', endpoint: 'wg.de.toravpn.net' };
+
+  function pad(n) { return String(n).padStart(2,'0'); }
+  function fmtTime(s) { return pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60); }
+  function fmtBytes(b) {
+    if(b<1024) return b.toFixed(1)+' B';
+    if(b<1048576) return (b/1024).toFixed(1)+' KB';
+    return (b/1048576).toFixed(2)+' MB';
+  }
+  function getLogTime() { return '['+fmtTime(sessionSec)+'] '; }
+
+  function addLog(msg, cls) {
+    const box = document.getElementById('log-box');
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = '<span class="ts">'+getLogTime()+'</span><span class="'+(cls||'')+'">'+msg+'</span>';
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function toggleConnect() {
+    if (!connected) {
+      connected = true;
+      document.getElementById('conn-btn').textContent = 'DISCONNECT';
+      document.getElementById('conn-btn').classList.add('connected');
+      document.getElementById('vpn-status-line').innerHTML = '<span style="color:#4af0c4">●</span> CONNECTED — ENCRYPTED';
+      document.getElementById('ring-icon').textContent = '🔒';
+      document.getElementById('ring-text').style.color = '#4af0c4';
+      document.getElementById('ring-text').textContent = 'SECURED';
+      document.getElementById('ring-progress').style.strokeDashoffset = '0';
+      document.getElementById('vpn-ip').textContent = currentServer.ip;
+      document.getElementById('active-server-name').textContent = currentServer.name;
+      document.getElementById('active-server-flag').textContent = currentServer.flag;
+
+      addLog('Resolving '+currentServer.endpoint+'...', 'warn');
+      setTimeout(() => addLog('WireGuard handshake initiated', 'warn'), 500);
+      setTimeout(() => addLog('Handshake complete ✓', 'ok'), 1000);
+      setTimeout(() => addLog('Tunnel established. IP: '+currentServer.ip, 'ok'), 1400);
+      setTimeout(() => addLog('DNS rerouted through tunnel', 'ok'), 1800);
+      setTimeout(() => addLog('Kill switch armed', 'ok'), 2100);
+      setTimeout(() => addLog('All systems operational', 'ok'), 2400);
+
+      sessionInterval = setInterval(() => {
+        sessionSec++;
+        document.getElementById('session-timer').textContent = fmtTime(sessionSec);
+      }, 1000);
+
+      statsInterval = setInterval(() => {
+        const dl = Math.random()*120000 + 8000;
+        const ul = Math.random()*40000 + 3000;
+        totalDown += dl; totalUp += ul;
+        document.getElementById('stat-down').textContent = fmtBytes(totalDown);
+        document.getElementById('stat-up').textContent = fmtBytes(totalUp);
+        const ping = Math.floor(Math.random()*20 + 15);
+        document.getElementById('stat-ping').textContent = ping + 'ms';
+        document.getElementById('bar-down').style.width = Math.min(90, totalDown/100000)+'%';
+        document.getElementById('bar-up').style.width = Math.min(90, totalUp/40000)+'%';
+        document.getElementById('bar-ping').style.width = Math.min(90, ping)+'%';
+      }, 1500);
+
+    } else {
+      connected = false;
+      document.getElementById('conn-btn').textContent = 'CONNECT';
+      document.getElementById('conn-btn').classList.remove('connected');
+      document.getElementById('vpn-status-line').innerHTML = '● DISCONNECTED';
+      document.getElementById('ring-icon').textContent = '🔓';
+      document.getElementById('ring-text').style.color = '#556080';
+      document.getElementById('ring-text').textContent = 'TAP TO CONNECT';
+      document.getElementById('ring-progress').style.strokeDashoffset = '477.5';
+      document.getElementById('vpn-ip').textContent = '—';
+      document.getElementById('active-server-name').textContent = 'None selected';
+      document.getElementById('active-server-flag').textContent = '🌐';
+      clearInterval(sessionInterval);
+      clearInterval(statsInterval);
+      addLog('Tunnel disconnected. Session: '+fmtTime(sessionSec), 'warn');
+      addLog('Kill switch disarmed', 'warn');
+      sessionSec = 0; totalDown = 0; totalUp = 0;
+      document.getElementById('session-timer').textContent = '00:00:00';
+      document.getElementById('stat-down').textContent = '0.0 KB';
+      document.getElementById('stat-up').textContent = '0.0 KB';
+      document.getElementById('stat-ping').textContent = '—';
+      document.getElementById('bar-down').style.width = '0%';
+      document.getElementById('bar-up').style.width = '0%';
+      document.getElementById('bar-ping').style.width = '0%';
+    }
+  }
+
+  function selectServer(el, flag, name, ip, ping, pingClass) {
+    document.querySelectorAll('.server-row').forEach(r => r.classList.remove('active'));
+    el.classList.add('active');
+    const endpoint = 'wg.'+name.toLowerCase().split('—')[0].trim().substring(0,2)+'.toravpn.net';
+    currentServer = { name, flag, ip, endpoint };
+    if (connected) {
+      document.getElementById('vpn-ip').textContent = ip;
+      document.getElementById('active-server-name').textContent = name;
+      document.getElementById('active-server-flag').textContent = flag;
+      addLog('Switching to '+name+'...', 'warn');
+      setTimeout(() => addLog('Reconnected via '+name+' ['+ping+']', 'ok'), 900);
+    }
+  }
+
+  function switchTab(tab, el) {
+    document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+    document.getElementById('tab-'+tab).classList.remove('hidden');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function copyConfig() {
+    const text = `[Interface]
+Address     = 10.8.0.2/24
+PrivateKey  = <YOUR_CLIENT_PRIVATE_KEY>
+DNS         = 1.1.1.1, 8.8.8.8
+MTU         = 1420
+
+[Peer]
+PublicKey   = <YOUR_SERVER_PUBLIC_KEY>
+Endpoint    = wg.de.toravpn.net:51820
+AllowedIPs  = 0.0.0.0/0, ::/0
+PersistentKeepalive = 25`;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'COPIED ✓';
+      setTimeout(() => { btn.textContent = 'COPY CONFIG'; }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
